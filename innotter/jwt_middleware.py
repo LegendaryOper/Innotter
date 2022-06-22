@@ -1,20 +1,21 @@
 import jwt
 import traceback
 
-from django.utils.functional import SimpleLazyObject
+
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.conf import LazySettings
+from django.conf import settings
 from django.contrib.auth.middleware import get_user
+from django.core.exceptions import ObjectDoesNotExist
 
-settings = LazySettings()
 User = get_user_model()
 
 
 class JWTAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
-        request.user = SimpleLazyObject(lambda: self.__class__.get_jwt_user(request))
+        request._force_auth_user = self.get_jwt_user(request)
+
 
     @staticmethod
     def get_jwt_user(request):
@@ -23,7 +24,7 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
             return user_jwt
         token = request.COOKIES.get(settings.CUSTOM_JWT['AUTH_COOKIE'], None)
         user_jwt = AnonymousUser()
-        if token is not None:
+        if token:
             try:
                 user_jwt = jwt.decode(
                     token,
@@ -34,6 +35,6 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
                     username=user_jwt['username']
                 )
 
-            except Exception as e: # NoQA
+            except ObjectDoesNotExist:
                 traceback.print_exc()
         return user_jwt

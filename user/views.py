@@ -43,7 +43,7 @@ class JSONWebTokenAuthViewSet(ViewSet):
             return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['post'], detail=False)
+    @action(methods=('post',), detail=False)
     def refresh(self, request):
         refresh_token = request.COOKIES.get(settings.CUSTOM_JWT['AUTH_COOKIE_REFRESH'])
         if refresh_token is not None:

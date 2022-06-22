@@ -33,10 +33,6 @@ def get_refresh_token_obj(refresh_token):
     return old_token
 
 
-def update_refresh_token(refresh_token):
-    pass
-
-
 def set_refresh_token(refresh_token, user):
     refresh_token = RefreshToken(user=user, refresh_token=refresh_token,
                                  exp_time=settings.CUSTOM_JWT['REFRESH_TOKEN_LIFETIME_MODEL'])
@@ -45,12 +41,12 @@ def set_refresh_token(refresh_token, user):
 
 def check_and_update_refresh_token(refresh_token):
     old_token = get_refresh_token_obj(refresh_token)
-    if old_token is not None:
+    if old_token:
         if timezone.now() - datetime.timedelta(days=old_token.exp_time) > old_token.created_at:
             return None
-        new_token = generate_access_token(old_token.user)
+        new_access_token = generate_access_token(old_token.user)
         new_refresh_token = generate_refresh_token()
         set_refresh_token(new_refresh_token, old_token.user)
         old_token.delete()
-        return {settings.CUSTOM_JWT['AUTH_COOKIE']: new_token,
+        return {settings.CUSTOM_JWT['AUTH_COOKIE']: new_access_token,
                 settings.CUSTOM_JWT['AUTH_COOKIE_REFRESH']: new_refresh_token}
