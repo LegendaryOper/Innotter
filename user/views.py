@@ -1,16 +1,22 @@
 
 from django.conf import settings
-from rest_framework import parsers, renderers, status
-from rest_framework.viewsets import ViewSet
+from rest_framework import parsers, renderers, status, viewsets, mixins, permissions
 from rest_framework.response import Response
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.decorators import action
 from .services import generate_access_token, generate_refresh_token, set_refresh_token, check_and_update_refresh_token
+from .serializers import UserSerializer
+from django.contrib.auth import get_user_model
+from .permissions import IsUserOwner, IsAdmin, IsModerator, IsUserOwnerOrAdmin
+from rest_framework import permissions
 
 
-class JSONWebTokenAuthViewSet(ViewSet):
+User = get_user_model()
+
+
+class JSONWebTokenAuthViewSet(viewsets.ViewSet):
     throttle_classes = ()
-    permission_classes = ()
+    permission_classes = (permissions.AllowAny,)
     parser_classes = (parsers.FormParser, parsers.MultiPartParser, parsers.JSONParser,)
     renderer_classes = (renderers.JSONRenderer,)
     serializer_class = AuthTokenSerializer
@@ -46,9 +52,9 @@ class JSONWebTokenAuthViewSet(ViewSet):
     @action(methods=('post',), detail=False)
     def refresh(self, request):
         refresh_token = request.COOKIES.get(settings.CUSTOM_JWT['AUTH_COOKIE_REFRESH'])
-        if refresh_token is not None:
+        if refresh_token:
             new_tokens = check_and_update_refresh_token(refresh_token)
-            if new_tokens is not None:
+            if new_tokens:
                 response = Response(new_tokens)
                 response.set_cookie(
                     key=settings.CUSTOM_JWT['AUTH_COOKIE'],
@@ -68,6 +74,29 @@ class JSONWebTokenAuthViewSet(ViewSet):
                 )
                 return response
         return Response({'message': "Your token isn't valid"})
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    """ViewSet for all User objects"""
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = []
+    permissions_dict = {
+                        'partial_update': (permissions.IsAuthenticated, IsUserOwnerOrAdmin),
+                        'update': (permissions.IsAuthenticated, IsUserOwnerOrAdmin),
+                        'destroy': (permissions.IsAuthenticated, IsUserOwnerOrAdmin),
+                        'create': (permissions.AllowAny,),
+                        'list': (permissions.IsAuthenticated, IsAdmin,),
+                        'retrieve': (permissions.IsAuthenticated,),
+                        }
+
+    # a method that set permissions depending on http request methods
+    def get_permissions(self):
+        self.permission_classes = self.permissions_dict.get(self.action)
+        return super(self.__class__, self).get_permissions()
+
+
+
 
 
 
