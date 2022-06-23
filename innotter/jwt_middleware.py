@@ -19,7 +19,7 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
         request._force_auth_user = self.get_jwt_user(request)
 
     def process_response(self, request, response):
-        if str(self.get_jwt_user(request)) != 'AnonymousUser':
+        if not isinstance(self.get_jwt_user(request), AnonymousUser):
             if self.get_jwt_user(request).is_blocked:
                 response = Response(
                     data="You're blocked",

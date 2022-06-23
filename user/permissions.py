@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from .models import User
 
 
 class IsUserOwner(permissions.BasePermission):
@@ -9,14 +10,14 @@ class IsUserOwner(permissions.BasePermission):
 class IsAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.user.role:
-            return request.user.role == 'admin'
+            return request.user.role == User.Roles.ADMIN
         return False
 
 
 class IsModerator(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.user.role:
-            return request.user.role == 'moderator'
+            return request.user.role == User.Roles.MODERATOR
         return False
 
 

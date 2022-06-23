@@ -5,7 +5,7 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     """ A user model serializer"""
     role = serializers.CharField(default='user')
-    is_blocked = serializers.BooleanField(default=False)
+    # is_blocked = serializers.BooleanField(default=False)
 
     class Meta:
         model = User
