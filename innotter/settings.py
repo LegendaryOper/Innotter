@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+from rest_framework.authentication import SessionAuthentication
 
 from pathlib import Path
 from decouple import config
@@ -27,7 +28,8 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool, default=True)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS").split(',')
+
+ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
 
 # Application definition
 
@@ -39,8 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-
+    'django_extensions',
+    'innotter',
+    'user',
+    'innotter_functional',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -48,9 +54,11 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'innotter.jwt_middleware.JWTAuthenticationMiddleware', # This is my middleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'innotter.urls'
 
@@ -82,7 +90,7 @@ DATABASES = {
         'NAME': config('POSTGRES_NAME'),
         'USER': config('POSTGRES_USER'),
         'PASSWORD': config('POSTGRES_PASSWORD'),
-        'HOST': config('DB_HOST'),
+        'HOST': config('DEBUG_DB_HOST'),
         'PORT': config('DB_PORT', cast=int),
     }
 }
@@ -105,6 +113,8 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+AUTH_USER_MODEL = 'user.User'
 
 
 # Internationalization
@@ -132,11 +142,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        # 'rest_framework.permissions.IsAuthenticated',
 
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+
     )
 }
 
@@ -146,3 +156,43 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = config('EMAIL_PORT', cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+
+CUSTOM_JWT = {
+  'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+  'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+  'REFRESH_TOKEN_LIFETIME_MODEL': 1,  # in days
+
+  'ROTATE_REFRESH_TOKENS': False,
+  'BLACKLIST_AFTER_ROTATION': True,
+  'UPDATE_LAST_LOGIN': False,
+
+  'ALGORITHM': 'HS256',
+  'SIGNING_KEY': SECRET_KEY,
+  'VERIFYING_KEY': None,
+  'AUDIENCE': None,
+  'ISSUER': None,
+
+  'AUTH_HEADER_TYPES': ('Bearer',),
+  'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+  'USER_ID_FIELD': 'id',
+  'USER_ID_CLAIM': 'user_id',
+  'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+  'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+  'TOKEN_TYPE_CLAIM': 'token_type',
+
+  'JTI_CLAIM': 'jti',
+
+  'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+  'SLIDING_TOKEN_LIFETIME': timedelta(minutes=10),
+  'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+
+  # custom
+  'AUTH_COOKIE': 'access_token',  # Cookie name. Enables cookies if value is set# .
+  'AUTH_COOKIE_REFRESH': 'refresh_token',
+  'AUTH_COOKIE_DOMAIN': None,     # A string like "example.com", or None for standard domain cookie.
+  'AUTH_COOKIE_SECURE': False,    # Whether the auth cookies should be secure (https:// only).
+  'AUTH_COOKIE_HTTP_ONLY': True, # Http only cookie flag.It's not fetch by javascript.
+  'AUTH_COOKIE_PATH': '/',        # The path of the auth cookie.
+  'AUTH_COOKIE_SAMESITE': 'Lax',  # Whether to set the flag restricting cookie leaks on cross-site requests. This can be 'Lax', 'Strict', or None to disable the flag.
+}
