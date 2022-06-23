@@ -28,6 +28,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool, default=True)
 
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
 
 # Application definition
@@ -43,8 +44,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'innotter',
     'user',
-    'innotter_functional'
-
+    'innotter_functional',
 ]
 
 
@@ -150,13 +150,12 @@ REST_FRAMEWORK = {
     )
 }
 
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST')
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 EMAIL_PORT = config('EMAIL_PORT', cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)\
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 
 CUSTOM_JWT = {
   'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),

@@ -11,6 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.response import Response
 from rest_framework import status, renderers
 
+
 User = get_user_model()
 
 
@@ -31,7 +32,6 @@ class JWTAuthenticationMiddleware(MiddlewareMixin):
                 response.render()
                 return response
         return response
-
 
     @staticmethod
     def get_jwt_user(request):
