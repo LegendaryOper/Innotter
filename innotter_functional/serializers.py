@@ -1,7 +1,7 @@
 import datetime
-from .services import change_followers_data_from_str_to_list
 from rest_framework import serializers
 from .models import Page
+from user.models import User
 
 
 class PageModelUserSerializer(serializers.ModelSerializer):
@@ -35,17 +35,10 @@ class PageModelFollowRequestsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Page
         fields = ('follow_requests', 'followers')
-        validators = []
-
-    def validate(self, data):
-        if data['followers']:
-            data = change_followers_data_from_str_to_list(data)
-            return data
-        raise serializers.ValidationError('Your data is not valid')
 
     def update(self, instance, validated_data):
-        if validated_data['followers']:
-            instance.followers.add(*validated_data['followers'])
+        if validated_data['followers_accept_ids']:
+            instance.followers.add(*validated_data['followers_accept_ids'])
             if instance.follow_requests:
                 instance.follow_requests.remove(*validated_data['follow_requests'])
             instance.save()

@@ -54,13 +54,11 @@ class PageViewSet(viewsets.ModelViewSet):
                                  'followers': serializer.data['followers']},  status.HTTP_200_OK)
             elif request.method == 'POST':
                 add_follow_requests_to_request_data(request.data, page.follow_requests)
-                serializer = PageModelFollowRequestsSerializer(request.data)
-                try:
-                    validated_data = serializer.validate(request.data)
-                except serializers.ValidationError:
-                    return Response({'message': 'Your data is not valid'}, status.HTTP_400_BAD_REQUEST)
-                serializer.update(instance=page, validated_data=validated_data)
-                return Response({'message': 'Ok'},  status.HTTP_200_OK)
+                serializer = PageModelFollowRequestsSerializer(data=request.data)
+                if serializer.is_valid():
+                    serializer.update(page, request.data)
+                    return Response({'message': 'Ok'}, status.HTTP_200_OK)
+                return Response({'message': 'Your data is not valid'}, status.HTTP_400_BAD_REQUEST)
         return Response({"message": "Your page isn't private"}, status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=('post',))

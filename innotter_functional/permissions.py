@@ -27,7 +27,7 @@ class PageIsntPrivate(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if obj.is_private:
             return IsPageOwnerOrModeratorOrAdmin.has_object_permission(self, request, view, obj)\
-                   or (request.user in obj.followers)
+                   or obj.followers.filter(id=request.user.id).exists()
         return True
 
 
