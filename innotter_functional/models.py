@@ -29,9 +29,4 @@ class Post(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 
-class Comment(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
-    page = models.ForeignKey(Page, on_delete=models.CASCADE, related_name='comments')
-    content = models.CharField(max_length=180)
-
 

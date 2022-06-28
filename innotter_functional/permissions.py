@@ -1,6 +1,7 @@
 from user.permissions import IsAdmin, IsModerator
 from rest_framework import permissions
 from user.models import User
+from django.contrib.auth.models import AnonymousUser
 from .services import check_page_block
 
 
@@ -33,6 +34,8 @@ class PageIsntPrivate(permissions.BasePermission):
 
 class IsAdminOrModerator(permissions.BasePermission):
     def has_permission(self, request, view):
+        if isinstance(request.user, AnonymousUser):
+            return False
         return request.user.role == User.Roles.ADMIN \
                or request.user.role == User.Roles.MODERATOR
 

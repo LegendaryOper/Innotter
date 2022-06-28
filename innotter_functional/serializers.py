@@ -1,6 +1,6 @@
 import datetime
 from rest_framework import serializers
-from .models import Page
+from .models import Page, Post
 from user.models import User
 
 
@@ -11,7 +11,7 @@ class PageModelUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Page
-        fields = ('name', 'description', 'image', 'uuid', 'tags', 'is_private', 'owner', 'followers')
+        fields = ('name', 'description', 'image', 'uuid', 'tags', 'is_private', 'owner', 'followers', 'unblock_date')
 
 
 class PageModelAdminOrModerSerializer(serializers.ModelSerializer):
@@ -43,4 +43,10 @@ class PageModelFollowRequestsSerializer(serializers.ModelSerializer):
                 instance.follow_requests.remove(*validated_data['follow_requests'])
             instance.save()
             return instance
+
+
+class PostModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = "__all__"
 

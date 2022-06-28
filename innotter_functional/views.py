@@ -2,14 +2,17 @@ from django.conf import settings
 from .models import Page, Tag, Post
 from user.models import User
 from rest_framework import parsers, renderers, status, viewsets, mixins, permissions, serializers
-from .serializers import PageModelUserSerializer, PageModelAdminOrModerSerializer, PageModelFollowRequestsSerializer
+from .serializers import PageModelUserSerializer, PageModelAdminOrModerSerializer, PageModelFollowRequestsSerializer,\
+                         PostModelSerializer
 from rest_framework import permissions
 from .permissions import IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked, \
                          PageIsntPrivate
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .services import add_follow_requests_to_request_data, check_user_in_page_follow_requests, \
-                      check_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers
+                      check_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
+                      add_parent_page_id_to_request_data
+from rest_framework_extensions.mixins import NestedViewSetMixin
 
 
 class PageViewSet(viewsets.ModelViewSet):
@@ -34,6 +37,11 @@ class PageViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         self.permission_classes = self.permissions_dict.get(self.action)
         return super(self.__class__, self).get_permissions()
+
+    def check_permissions(self, request):
+        obj = Page.objects.get(id=self.kwargs.get('pk'))
+        self.check_object_permissions(request, obj)
+        return super().check_permissions(request)
 
     def get_serializer_class(self):
         if self.request.user.role in (User.Roles.ADMIN, User.Roles.MODERATOR):
@@ -74,5 +82,39 @@ class PageViewSet(viewsets.ModelViewSet):
         else:
             add_user_to_page_followers(request.user, page)
         return Response({'message': 'Ok'},  status.HTTP_200_OK)
+
+
+class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
+    serializer_class = PostModelSerializer
+    permission_classes = []
+    queryset = Post.objects.all()
+    permissions_dict = {
+        'partial_update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
+                           PageIsntBlocked,),
+        'update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
+                   PageIsntBlocked,),
+        'destroy': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
+        'create': (permissions.IsAuthenticated, IsPageOwner),
+        'list': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked,),
+        'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
+    }
+
+    def create(self, request, *args, **kwargs):
+        add_parent_page_id_to_request_data(request.data, self.kwargs.get('parent_lookup_page_id'))
+        return super().create(request, *args, **kwargs)
+
+    def get_permissions(self):
+        self.permission_classes = self.permissions_dict.get(self.action)
+        return super().get_permissions()
+
+    def check_permissions(self, request):
+        obj = Page.objects.get(id=self.kwargs.get('parent_lookup_page_id'))
+        self.check_object_permissions(request, obj)
+        return super().check_permissions(request)
+
+    def get_object(self):
+        return Post.objects.get(pk=self.kwargs['pk'])
+
+
 
 
