@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .services import add_follow_requests_to_request_data, check_user_in_page_follow_requests, \
                       check_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
-                      add_parent_page_id_to_request_data
+                      add_parent_page_id_to_request_data, add_like_to_post
 from rest_framework_extensions.mixins import NestedViewSetMixin
 
 
@@ -97,6 +97,7 @@ class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
         'create': (permissions.IsAuthenticated, IsPageOwner),
         'list': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked,),
         'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
+        'like': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
     }
 
     def create(self, request, *args, **kwargs):
@@ -114,6 +115,13 @@ class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
 
     def get_object(self):
         return Post.objects.get(pk=self.kwargs['pk'])
+
+    @action(detail=True, methods=('post',))
+    def like(self, request, pk=None, parent_lookup_page_id=None):
+        post = self.get_object()
+        self.check_permissions(request)
+        add_like_to_post(post)
+        return Response({'message': 'Ok'}, status.HTTP_200_OK)
 
 
 

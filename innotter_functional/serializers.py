@@ -49,4 +49,7 @@ class PostModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = "__all__"
+        extra_kwargs = {
+            'likes': {'read_only': True},
+        }
 

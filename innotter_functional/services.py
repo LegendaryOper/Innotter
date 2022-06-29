@@ -1,4 +1,5 @@
 from django.utils import timezone
+from django.db.models import F
 
 
 def check_page_block(unblock_date):
@@ -37,5 +38,10 @@ def add_parent_page_id_to_request_data(request_data, page_id):
     request_data._mutable = True
     request_data['page'] = page_id
     request_data._mutable = False
+
+
+def add_like_to_post(post):
+    post.likes = F('likes') + 1
+    post.save()
 
 
