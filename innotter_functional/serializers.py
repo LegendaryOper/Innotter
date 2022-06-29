@@ -1,6 +1,6 @@
 import datetime
 from rest_framework import serializers
-from .models import Page, Post
+from .models import Page, Post, Tag
 from user.models import User
 
 
@@ -52,4 +52,10 @@ class PostModelSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'likes': {'read_only': True},
         }
+
+
+class TagModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = '__all__'
 
