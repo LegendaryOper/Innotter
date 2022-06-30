@@ -48,7 +48,7 @@ class PageModelFollowRequestsSerializer(serializers.ModelSerializer):
 class PostModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = "__all__"
+        fields = ('page', 'content', 'reply_to', 'created_at', 'updated_at', 'likes')
         extra_kwargs = {
             'likes': {'read_only': True},
         }
@@ -57,5 +57,5 @@ class PostModelSerializer(serializers.ModelSerializer):
 class TagModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = '__all__'
+        fields = ('name',)
 

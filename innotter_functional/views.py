@@ -84,7 +84,8 @@ class PageViewSet(viewsets.ModelViewSet):
         page = self.get_object()
         self.check_permissions(request)
         self.check_object_permissions(request, self.get_object())
-        if is_user_in_page_follow_requests(request.user, page) or is_user_in_page_followers(request.user, page):
+        if (is_user_in_page_follow_requests(request.user, page)
+            or is_user_in_page_followers(request.user, page)):
             return Response({"message": "You are already sent follow request"}, status.HTTP_400_BAD_REQUEST)
         if page.is_private:
             add_user_to_page_follow_requests(request.user, page)
