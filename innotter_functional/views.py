@@ -44,7 +44,9 @@ class PageViewSet(viewsets.ModelViewSet):
         return super(self.__class__, self).get_permissions()
 
     def list(self, request, *args, **kwargs):
-        self.queryset = Page.objects.filter(is_private=False, unblock_date__lt=timezone.now())
+        self.queryset = Page.objects.filter(Q(unblock_date__lt=timezone.now()) |
+                                            Q(unblock_date__isnull=True),
+                                            is_private=False)
         return super().list(request, *args, **kwargs)
 
     def check_permissions(self, request):
@@ -185,6 +187,21 @@ class SearchPageViewSet(SearchUserViewSet):
                                Q(uuid__icontains=edited_query_params.get('uuid'))).distinct()
         return queryset
 
+
+class FeedViewSet(viewsets.ViewSet):
+    serializer_class = PostModelSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Post.objects.prefetch_related('page__followers')\
+                       .filter(Q(page__followers=self.request.user) | Q(page__owner=self.request.user)).distinct()
+        return queryset
+
+    def list(self, request):
+        self.check_permissions(request)
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
 
 
 

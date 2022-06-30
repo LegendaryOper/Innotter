@@ -1,4 +1,4 @@
-from .views import PageViewSet, PostViewSet, TagViewSet, SearchUserViewSet, SearchPageViewSet
+from .views import PageViewSet, PostViewSet, TagViewSet, SearchUserViewSet, SearchPageViewSet, FeedViewSet
 from rest_framework_extensions.routers import ExtendedSimpleRouter
 
 router = ExtendedSimpleRouter()
@@ -7,4 +7,5 @@ router.register(r'pages', PageViewSet, basename='pages')\
 router.register('tags', TagViewSet, basename='tags',)
 router.register('search/users', SearchUserViewSet, basename='search-user')
 router.register('search/pages', SearchPageViewSet, basename='search-user')
+router.register('feed', FeedViewSet, basename='feed')
 urlpatterns = router.urls

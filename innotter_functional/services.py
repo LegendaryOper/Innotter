@@ -32,6 +32,9 @@ def add_user_to_page_followers(user, page):
 
 
 def add_parent_page_id_to_request_data(request_data, page_id):
+    if isinstance(request_data, dict):
+        request_data['page'] = page_id
+        return
     request_data._mutable = True
     request_data['page'] = page_id
     request_data._mutable = False

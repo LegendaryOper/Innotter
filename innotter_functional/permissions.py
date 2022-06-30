@@ -20,6 +20,7 @@ class PageIsntBlocked(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if obj.unblock_date:
             return is_page_block(obj.unblock_date) or IsAdminOrModerator.has_permission(self, request, view)
+        return True
 
 
 class PageIsntPrivate(permissions.BasePermission):
