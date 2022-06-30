@@ -28,5 +28,9 @@ class UserSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         if validated_data.get('role') == 'admin':
             instance.is_staff = True
-            instance.is_admin = True
+            instance.is_superuser = True
+        if validated_data['password']:
+            instance.set_password(validated_data['password'])
+            instance.save()
+            validated_data.pop('password')
         return super().update(instance, validated_data)

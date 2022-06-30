@@ -1,5 +1,5 @@
 from django.db import models
-
+import uuid
 
 # Create your models here.
 
@@ -10,14 +10,14 @@ class Tag(models.Model):
 
 class Page(models.Model):
     name = models.CharField(max_length=80)
-    uuid = models.UUIDField(primary_key=False, editable=True)
+    uuid = models.UUIDField(primary_key=False, editable=True, default=uuid.uuid4)
     description = models.TextField()
     tags = models.ManyToManyField('innotter_functional.Tag', related_name='pages', blank=True)
     owner = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name='pages')
-    followers = models.ManyToManyField('user.User', related_name='follows')
+    followers = models.ManyToManyField('user.User', related_name='follows', blank=True)
     image = models.URLField(null=True, blank=True)
     is_private = models.BooleanField(default=False)
-    follow_requests = models.ManyToManyField('user.User', related_name='requests')
+    follow_requests = models.ManyToManyField('user.User', related_name='requests', blank=True)
     unblock_date = models.DateTimeField(null=True, blank=True)
 
 
@@ -27,4 +27,7 @@ class Post(models.Model):
     reply_to = models.ForeignKey('innotter_functional.Post', on_delete=models.SET_NULL, null=True, related_name='replies')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    likes = models.IntegerField(default=0)
+
+
 

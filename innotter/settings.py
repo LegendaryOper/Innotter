@@ -158,9 +158,9 @@ EMAIL_PORT = config('EMAIL_PORT', cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
 
 CUSTOM_JWT = {
-  'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+  'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
   'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-  'REFRESH_TOKEN_LIFETIME_MODEL': 1,  # in days
+  'REFRESH_TOKEN_LIFETIME_MODEL': 30,  # in days
 
   'ROTATE_REFRESH_TOKENS': False,
   'BLACKLIST_AFTER_ROTATION': True,
