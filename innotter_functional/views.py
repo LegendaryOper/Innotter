@@ -8,7 +8,7 @@ from .serializers import PageModelUserSerializer, PageModelAdminOrModerSerialize
                          PostModelSerializer, TagModelSerializer
 from rest_framework import permissions
 from .permissions import IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked, \
-                         PageIsntPrivate
+                         PageIsntPrivate, IsPagePostParent
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .services import add_follow_requests_to_request_data, is_user_in_page_follow_requests, \
@@ -112,7 +112,7 @@ class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
         'destroy': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
         'create': (permissions.IsAuthenticated, IsPageOwner),
         'list': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked,),
-        'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
+        'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked, IsPagePostParent),
         'like': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
     }
 

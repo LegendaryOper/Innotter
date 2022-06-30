@@ -1,6 +1,7 @@
 from user.permissions import IsAdmin, IsModerator
 from rest_framework import permissions
 from user.models import User
+from .models import Post
 from django.contrib.auth.models import AnonymousUser
 from .services import is_page_block
 
@@ -37,6 +38,11 @@ class IsAdminOrModerator(permissions.BasePermission):
             return False
         return request.user.role == User.Roles.ADMIN \
                or request.user.role == User.Roles.MODERATOR
+
+
+class IsPagePostParent(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return Post.objects.get(pk=view.kwargs.get('pk')).page == obj
 
 
 
