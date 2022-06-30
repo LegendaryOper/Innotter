@@ -12,6 +12,11 @@ class PageModelUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Page
         fields = ('name', 'description', 'image', 'uuid', 'tags', 'is_private', 'owner', 'followers', 'unblock_date')
+        extra_kwargs = {
+            'unblock_date': {'read_only': True},
+            'owner': {'read_only': True},
+            'followers': {'read_only': True},
+        }
 
 
 class PageModelAdminOrModerSerializer(serializers.ModelSerializer):
@@ -21,7 +26,7 @@ class PageModelAdminOrModerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Page
-        fields = '__all__'
+        fields = ('name', 'description', 'image', 'uuid', 'tags', 'is_private', 'owner', 'followers', 'unblock_date')
 
     def update(self, instance, validated_data):
         if validated_data['unblock_date']:
@@ -60,9 +65,3 @@ class TagModelSerializer(serializers.ModelSerializer):
         fields = ('name',)
 
 
-class SearchSerializer(serializers.Serializer):
-    user_username = serializers.CharField(max_length=20, allow_blank=True)
-    user_email = serializers.EmailField(allow_blank=True)
-    page_uuid = serializers.UUIDField(allow_blank=True)
-    page_name = serializers.CharField(max_length=80, allow_blank=True)
-    page_tag = serializers.CharField(max_length=30, allow_blank=True)

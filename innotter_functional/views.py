@@ -1,9 +1,11 @@
 from django.conf import settings
+
+import user.serializers
 from .models import Page, Tag, Post
 from user.models import User
-from rest_framework import parsers, renderers, status, viewsets, mixins, permissions, serializers
+from rest_framework import parsers, renderers, status, viewsets, mixins, permissions, serializers, views
 from .serializers import PageModelUserSerializer, PageModelAdminOrModerSerializer, PageModelFollowRequestsSerializer,\
-                         PostModelSerializer, TagModelSerializer, SearchSerializer
+                         PostModelSerializer, TagModelSerializer
 from rest_framework import permissions
 from .permissions import IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked, \
                          PageIsntPrivate
@@ -11,9 +13,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .services import add_follow_requests_to_request_data, is_user_in_page_follow_requests, \
                       is_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
-                      add_parent_page_id_to_request_data, add_like_to_post
+                      add_parent_page_id_to_request_data, add_like_to_post, get_edited_query_params
 from rest_framework_extensions.mixins import NestedViewSetMixin
 from django.utils import timezone
+from user.serializers import UserSerializer
+from django.db.models import Q
 
 
 class PageViewSet(viewsets.ModelViewSet):
@@ -152,27 +156,39 @@ class TagViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destro
         return super().get_permissions()
 
 
-class SearchViewSet(viewsets.GenericViewSet):
-    serializer_class = SearchSerializer
+class SearchUserViewSet(viewsets.ViewSet):
+    serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.data.get('user_username'):
-            queryset = User.objects.filter(username=self.request.data.get('username'))
-        elif self.request.data.get('user_email'):
-            queryset = User.objects.filter(email=self.request.data.get('user_email'))
-        elif self.request.data.get('page_name'):
-            queryset = Page.objects.filter(name=self.request.data.get('page_name'))
-        elif self.request.data.get('page_uuid'):
-            queryset = Page.objects.filter(uuid=self.request.data.get('page_uuid'))
-        elif self.request.data.get('page_tag'):
-            queryset = Page.objects.prefetch_related('tags').filter(tags=1)
-        else:
-            return Page.objects.none()
+        queryset = User.objects.none()
+        username = self.request.query_params.get('username')
+        if username:
+            queryset = User.objects.filter(username__icontains=username)
         return queryset
 
-    def post(self, request):
-        serializer = self.serializer_class(request.data)
-        if serializer.is_valid():
-            print(serializer.data)
-        return Response({'message':'Ok'})
+    def list(self, request):
+        self.check_permissions(request)
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
+
+
+class SearchPageViewSet(SearchUserViewSet):
+    serializer_class = PageModelUserSerializer
+
+    def get_queryset(self):
+        edited_query_params = get_edited_query_params(self.request.query_params)
+        queryset = Page.objects.prefetch_related('tags')\
+                       .filter(Q(name__icontains=edited_query_params.get('name')),
+                               Q(tags__name__icontains=edited_query_params.get('tag')),
+                               Q(uuid__icontains=edited_query_params.get('uuid'))).distinct()
+        return queryset
+
+
+
+
+
+
+
+

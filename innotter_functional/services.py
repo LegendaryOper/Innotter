@@ -1,5 +1,6 @@
 from django.utils import timezone
 from django.db.models import F
+from .models import Page
 
 
 def is_page_block(unblock_date):
@@ -40,4 +41,15 @@ def add_like_to_post(post):
     post.likes = F('likes') + 1
     post.save()
 
+
+def get_edited_query_params(query_params):
+    query_params_dict = {'name': query_params.get('name'),
+                         'tag': query_params.get('tag'),
+                         'uuid': query_params.get('uuid')}
+
+    for query_param_name, query_param in query_params_dict.items():
+        if query_param is not None:
+            continue
+        query_params_dict[query_param_name] = ''
+    return query_params_dict
 
