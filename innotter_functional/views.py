@@ -9,8 +9,8 @@ from .permissions import IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModerator
                          PageIsntPrivate
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .services import add_follow_requests_to_request_data, check_user_in_page_follow_requests, \
-                      check_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
+from .services import add_follow_requests_to_request_data, is_user_in_page_follow_requests, \
+                      is_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
                       add_parent_page_id_to_request_data, add_like_to_post
 from rest_framework_extensions.mixins import NestedViewSetMixin
 from django.utils import timezone
@@ -84,8 +84,7 @@ class PageViewSet(viewsets.ModelViewSet):
         page = self.get_object()
         self.check_permissions(request)
         self.check_object_permissions(request, self.get_object())
-        if check_user_in_page_follow_requests(request.user, page) or \
-                check_user_in_page_followers(request.user, page):
+        if is_user_in_page_follow_requests(request.user, page) or is_user_in_page_followers(request.user, page):
             return Response({"message": "You are already sent follow request"}, status.HTTP_400_BAD_REQUEST)
         if page.is_private:
             add_user_to_page_follow_requests(request.user, page)

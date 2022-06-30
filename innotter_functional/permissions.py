@@ -2,7 +2,7 @@ from user.permissions import IsAdmin, IsModerator
 from rest_framework import permissions
 from user.models import User
 from django.contrib.auth.models import AnonymousUser
-from .services import check_page_block
+from .services import is_page_block
 
 
 class IsPageOwner(permissions.BasePermission):
@@ -19,9 +19,7 @@ class IsPageOwnerOrModeratorOrAdmin(permissions.BasePermission):
 class PageIsntBlocked(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if obj.unblock_date:
-            if check_page_block(obj.unblock_date):
-                return True
-            return IsAdminOrModerator.has_permission(self, request, view)
+            return is_page_block(obj.unblock_date) or IsAdminOrModerator.has_permission(self, request, view)
 
 
 class PageIsntPrivate(permissions.BasePermission):
