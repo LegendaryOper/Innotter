@@ -3,7 +3,7 @@ from .models import Page, Tag, Post
 from user.models import User
 from rest_framework import parsers, renderers, status, viewsets, mixins, permissions, serializers
 from .serializers import PageModelUserSerializer, PageModelAdminOrModerSerializer, PageModelFollowRequestsSerializer,\
-                         PostModelSerializer, TagModelSerializer
+                         PostModelSerializer, TagModelSerializer, SearchSerializer
 from rest_framework import permissions
 from .permissions import IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked, \
                          PageIsntPrivate
@@ -150,3 +150,29 @@ class TagViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destro
     def get_permissions(self):
         self.permission_classes = self.permissions_dict.get(self.action)
         return super().get_permissions()
+
+
+class SearchViewSet(viewsets.GenericViewSet):
+    serializer_class = SearchSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.data.get('user_username'):
+            queryset = User.objects.filter(username=self.request.data.get('username'))
+        elif self.request.data.get('user_email'):
+            queryset = User.objects.filter(email=self.request.data.get('user_email'))
+        elif self.request.data.get('page_name'):
+            queryset = Page.objects.filter(name=self.request.data.get('page_name'))
+        elif self.request.data.get('page_uuid'):
+            queryset = Page.objects.filter(uuid=self.request.data.get('page_uuid'))
+        elif self.request.data.get('page_tag'):
+            queryset = Page.objects.prefetch_related('tags').filter(tags=1)
+        else:
+            return Page.objects.none()
+        return queryset
+
+    def post(self, request):
+        serializer = self.serializer_class(request.data)
+        if serializer.is_valid():
+            print(serializer.data)
+        return Response({'message':'Ok'})

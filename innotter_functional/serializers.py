@@ -59,3 +59,10 @@ class TagModelSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ('name',)
 
+
+class SearchSerializer(serializers.Serializer):
+    user_username = serializers.CharField(max_length=20, allow_blank=True)
+    user_email = serializers.EmailField(allow_blank=True)
+    page_uuid = serializers.UUIDField(allow_blank=True)
+    page_name = serializers.CharField(max_length=80, allow_blank=True)
+    page_tag = serializers.CharField(max_length=30, allow_blank=True)
