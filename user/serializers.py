@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User
+from .services import block_all_users_pages, unblock_all_users_pages
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -29,8 +30,12 @@ class UserSerializer(serializers.ModelSerializer):
         if validated_data.get('role') == 'admin':
             instance.is_staff = True
             instance.is_superuser = True
-        if validated_data['password']:
+        if validated_data.get('password'):
             instance.set_password(validated_data['password'])
             instance.save()
             validated_data.pop('password')
+        if validated_data.get('is_blocked'):
+            block_all_users_pages(instance)
+        elif not validated_data.get('is_blocked'):
+            unblock_all_users_pages(instance)
         return super().update(instance, validated_data)
