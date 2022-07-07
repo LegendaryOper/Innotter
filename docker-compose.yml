@@ -12,7 +12,6 @@ services:
     restart: always
     depends_on:
       - db
-      - rabbitmq
   db:
     image: postgres
     ports:
@@ -25,6 +24,7 @@ services:
        celery -A innotter worker -l info"
     depends_on:
       - web
+      - rabbitmq
   rabbitmq:
     container_name: "rabbitmq"
     image: rabbitmq:3-management-alpine
