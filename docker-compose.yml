@@ -19,7 +19,12 @@ services:
       - "5432:5432"
     env_file:
       - .env
-
+  celery:
+    image: celery
+    command: sh -c "
+       celery -A innotter worker -l info"
+    depends_on:
+      - web
   rabbitmq:
     container_name: "rabbitmq"
     image: rabbitmq:3-management-alpine

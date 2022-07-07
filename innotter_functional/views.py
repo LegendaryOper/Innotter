@@ -1,5 +1,4 @@
 from django.conf import settings
-
 import user.serializers
 from .models import Page, Tag, Post
 from user.models import User
@@ -13,12 +12,15 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .services import add_follow_requests_to_request_data, is_user_in_page_follow_requests, \
                       is_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
-                      add_parent_page_id_to_request_data, add_like_to_post, get_edited_query_params
+                      add_parent_page_id_to_request_data, add_like_to_post, get_edited_query_params, prepare_mail_data
 from rest_framework_extensions.mixins import NestedViewSetMixin
 from django.utils import timezone
 from user.serializers import UserSerializer
 from django.db.models import Q
 import django_filters.rest_framework
+from .tasks import celery_send_mail_about_post
+from .services import handle_page_image
+
 
 
 class PageViewSet(viewsets.ModelViewSet):
@@ -66,6 +68,18 @@ class PageViewSet(viewsets.ModelViewSet):
         else:
             self.serializer_class = PageModelUserSerializer
         return super(self.__class__, self).get_serializer_class()
+
+    def create(self, request, *args, **kwargs):
+        image = request.FILES.get('image')
+        if image:
+            handle_page_image(image, request)
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        image = request.FILES.get('image')
+        if image:
+            handle_page_image(image, request)
+        return super().update(request, *args, **kwargs)
 
     @action(detail=True, methods=('get', 'post'))
     def follow_requests(self, request, pk=None):
@@ -119,7 +133,15 @@ class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         add_parent_page_id_to_request_data(request.data, self.kwargs.get('parent_lookup_page_id'))
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        print(serializer.data)
+        mail_data = prepare_mail_data(serializer.data)
+        celery_send_mail_about_post.delay(*mail_data)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_permissions(self):
         self.permission_classes = self.permissions_dict.get(self.action)

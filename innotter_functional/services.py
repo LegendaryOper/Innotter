@@ -1,6 +1,9 @@
 from django.utils import timezone
 from django.db.models import F
+from django.http import QueryDict
 from .models import Page
+from user.services import get_file_extension
+from .aws_s3_conn import upload_file_to_s3
 
 
 def is_page_block(unblock_date):
@@ -32,12 +35,12 @@ def add_user_to_page_followers(user, page):
 
 
 def add_parent_page_id_to_request_data(request_data, page_id):
-    if isinstance(request_data, dict):
+    if isinstance(request_data, QueryDict):
+        request_data._mutable = True
         request_data['page'] = page_id
+        request_data._mutable = False
         return
-    request_data._mutable = True
     request_data['page'] = page_id
-    request_data._mutable = False
 
 
 def add_like_to_post(post):
@@ -55,4 +58,34 @@ def get_edited_query_params(query_params):
             continue
         query_params_dict[query_param_name] = ''
     return query_params_dict
+
+
+def prepare_mail_data(post_data):
+    followers_list = [element['email'] for element in list(Page.objects.prefetch_related('followers')
+                                                           .get(pk=post_data.get('page')).followers.values('email'))]
+    page_name = Page.objects.get(pk=post_data.get('page')).name
+    post_url = f'/innotter/pages/{post_data.get("page")}/posts/{post_data.get("id")}'
+    mail_data = (followers_list, page_name, post_url)
+    return mail_data
+
+
+def add_page_image_to_request_data(url, request_data):
+    if isinstance(request_data, QueryDict):
+        request_data._mutable = True
+        request_data['image'] = url
+        request_data._mutable = False
+        return
+    request_data['image'] = url
+
+
+def handle_page_image(image, request):
+    if image:
+        extension = get_file_extension(image.name)
+        file_key = request.data.get('name') + extension
+        url = upload_file_to_s3(image, file_key)
+        add_page_image_to_request_data(url, request.data)
+        return
+    add_page_image_to_request_data('', request.data)
+    
+
 

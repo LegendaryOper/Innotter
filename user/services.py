@@ -5,8 +5,9 @@ from django.utils import timezone
 import jwt
 import datetime
 from innotter_functional.models import Page
-from innotter_functional.aws_conn import upload_file_to_s3
+from innotter_functional.aws_s3_conn import upload_file_to_s3
 from django.contrib.auth.models import AnonymousUser
+from django.http import QueryDict
 
 
 def generate_access_token(user):
@@ -73,26 +74,28 @@ def unblock_all_users_pages(user):
 
 def get_file_extension(filename: str):
     extension = filename.split('.')[-1]
-    print(extension)
     return '.' + extension
 
 
 def add_image_s3_path_to_request_data(url, request_data):
-    if isinstance(request_data, dict):
+    if isinstance(request_data, QueryDict):
+        request_data._mutable = True
         request_data['image_s3_path'] = url
+        request_data._mutable = False
         return
-    request_data._mutable = True
-    request_data['s3_image_path'] = url
-    request_data._mutable = False
+    request_data['image_s3_path'] = url
 
 
 def handle_image(image, request):
-    extension = get_file_extension(image.name)
-    if isinstance(request.user, AnonymousUser):
-        file_key = request.data.get('email') + extension
-    else:
-        file_key = request.user.email + extension
-    upload_file_to_s3(image, file_key)
+    if image:
+        extension = get_file_extension(image.name)
+        if isinstance(request.user, AnonymousUser):
+            file_key = request.data.get('email') + extension
+        else:
+            file_key = request.user.email + extension
+        url = upload_file_to_s3(image, file_key)
+        add_image_s3_path_to_request_data(url, request.data)
+        return
+    add_image_s3_path_to_request_data('', request.data)
 
-    add_image_s3_path_to_request_data(file_key, request.data)
 
