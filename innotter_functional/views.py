@@ -18,6 +18,7 @@ from rest_framework_extensions.mixins import NestedViewSetMixin
 from django.utils import timezone
 from user.serializers import UserSerializer
 from django.db.models import Q
+import django_filters.rest_framework
 
 
 class PageViewSet(viewsets.ModelViewSet):
@@ -158,34 +159,18 @@ class TagViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destro
         return super().get_permissions()
 
 
-class SearchUserViewSet(viewsets.ViewSet):
+class SearchUserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = User.objects.none()
-        username = self.request.query_params.get('username')
-        if username:
-            queryset = User.objects.filter(username__icontains=username)
-        return queryset
-
-    def list(self, request):
-        self.check_permissions(request)
-        queryset = self.get_queryset()
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data)
+    queryset = User.objects.all()
+    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
+    filterset_fields = ['username', 'email']
 
 
 class SearchPageViewSet(SearchUserViewSet):
     serializer_class = PageModelUserSerializer
-
-    def get_queryset(self):
-        edited_query_params = get_edited_query_params(self.request.query_params)
-        queryset = Page.objects.prefetch_related('tags')\
-                       .filter(Q(name__icontains=edited_query_params.get('name')),
-                               Q(tags__name__icontains=edited_query_params.get('tag')),
-                               Q(uuid__icontains=edited_query_params.get('uuid'))).distinct()
-        return queryset
+    queryset = Page.objects.all()
+    filterset_fields = ['uuid', 'name', 'tags']
 
 
 class FeedViewSet(viewsets.ViewSet):
@@ -193,8 +178,9 @@ class FeedViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Post.objects.prefetch_related('page__followers')\
-                       .filter(Q(page__followers=self.request.user) | Q(page__owner=self.request.user)).distinct()
+        queryset = (Post.objects.prefetch_related('page__followers')
+                        .filter(Q(page__followers=self.request.user)
+                                | Q(page__owner=self.request.user)).distinct())
         return queryset
 
     def list(self, request):
