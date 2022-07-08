@@ -102,7 +102,6 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer.save()
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-        print(serializer.errors)
         return Response({'message': 'data is not valid'}, status=status.HTTP_400_BAD_REQUEST,)
 
     def update(self, request, *args, **kwargs):
