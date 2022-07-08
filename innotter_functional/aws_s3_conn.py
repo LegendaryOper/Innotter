@@ -10,9 +10,12 @@ session = boto3.Session(
 s3 = session.resource('s3')
 
 
-def create_presigned_url(bucket_name, object_name, expiration=25200):
+def create_presigned_url(object_name, expiration=25200, bucket_name=settings.AWS_STORAGE_BUCKET_NAME,):
     # Generate a presigned URL for the S3 object
-    s3_client = boto3.client('s3')
+    s3_client = boto3.client('s3',
+                             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                             region_name='us-east-1')
     try:
         response = s3_client.generate_presigned_url('get_object',
                                                     Params={'Bucket': bucket_name,
@@ -27,7 +30,5 @@ def create_presigned_url(bucket_name, object_name, expiration=25200):
 
 def upload_file_to_s3(file, key):
     s3.Bucket(settings.AWS_STORAGE_BUCKET_NAME).put_object(Key=key, Body=file)
-    url = create_presigned_url(settings.AWS_STORAGE_BUCKET_NAME, key)
-    return url
 
 

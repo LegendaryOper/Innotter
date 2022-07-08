@@ -1,16 +1,26 @@
 from rest_framework import serializers
 from .models import User
 from .services import block_all_users_pages, unblock_all_users_pages
+from innotter_functional.aws_s3_conn import create_presigned_url
+from botocore.exceptions import ParamValidationError
 
 
 class UserSerializer(serializers.ModelSerializer):
     """ A user model serializer"""
     role = serializers.CharField(default='user')
+    avatar_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'email', 'title', 'image_s3_path', 'role', 'is_blocked')
+        fields = ('username', 'password', 'email', 'title', 'image_s3_path', 'role', 'is_blocked', 'avatar_url')
         extra_kwargs = {'password': {'write_only': True}}
+
+    def get_avatar_url(self, obj):
+        try:
+            url = create_presigned_url(object_name=obj.image_s3_path)
+        except ParamValidationError:
+            url = ''
+        return url
 
     def create(self, validated_data):
         user = User(

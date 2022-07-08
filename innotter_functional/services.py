@@ -83,8 +83,8 @@ def handle_page_image(image, request):
     if image:
         extension = get_file_extension(image.name)
         file_key = request.data.get('name') + extension
-        url = upload_file_to_s3(image, file_key)
-        add_page_image_to_request_data(url, request.data)
+        upload_file_to_s3(image, file_key)
+        add_page_image_to_request_data(file_key, request.data)
         return
     add_page_image_to_request_data('', request.data)
     

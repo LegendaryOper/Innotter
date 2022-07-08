@@ -93,8 +93,8 @@ def handle_image(image, request):
             file_key = request.data.get('email') + extension
         else:
             file_key = request.user.email + extension
-        url = upload_file_to_s3(image, file_key)
-        add_image_s3_path_to_request_data(url, request.data)
+        upload_file_to_s3(image, file_key)
+        add_image_s3_path_to_request_data(file_key, request.data)
         return
     add_image_s3_path_to_request_data('', request.data)
 

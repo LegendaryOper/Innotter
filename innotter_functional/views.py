@@ -22,7 +22,6 @@ from .tasks import celery_send_mail_about_post
 from .services import handle_page_image
 
 
-
 class PageViewSet(viewsets.ModelViewSet):
     """ViewSet for all User objects"""
     queryset = Page.objects.all()
