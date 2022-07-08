@@ -5,6 +5,8 @@ from django.utils import timezone
 import jwt
 import datetime
 from innotter_functional.models import Page
+from innotter_functional.aws_conn import upload_file_to_s3
+from django.contrib.auth.models import AnonymousUser
 
 
 def generate_access_token(user):
@@ -67,4 +69,29 @@ def unblock_all_users_pages(user):
         Page.objects.filter(owner=user).update(unblock_date=unblock_date)
     except ObjectDoesNotExist:
         pass
+
+
+def get_file_extension(filename: str):
+    extension = filename.split('.')[-1]
+    print(extension)
+    return '.' + extension
+
+
+def add_image_s3_path_to_request_data(url, request_data):
+    if isinstance(request_data, dict):
+        request_data['image_s3_path'] = url
+        return
+    request_data._mutable = True
+    request_data['s3_image_path'] = url
+    request_data._mutable = False
+
+
+def handle_image(image, request):
+    extension = get_file_extension(image.name)
+    if isinstance(request.user, AnonymousUser):
+        file_key = request.data.get('email') + extension
+    else:
+        file_key = request.user.email + extension
+    url = upload_file_to_s3(image, file_key)
+    add_image_s3_path_to_request_data(url, request.data)
 

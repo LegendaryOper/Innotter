@@ -12,9 +12,16 @@ services:
     restart: always
     depends_on:
       - db
+      - rabbitmq
   db:
     image: postgres
     ports:
       - "5432:5432"
     env_file:
       - .env
+
+  rabbitmq:
+    container_name: "rabbitmq"
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"

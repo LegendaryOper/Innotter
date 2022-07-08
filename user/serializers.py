@@ -6,7 +6,6 @@ from .services import block_all_users_pages, unblock_all_users_pages
 class UserSerializer(serializers.ModelSerializer):
     """ A user model serializer"""
     role = serializers.CharField(default='user')
-    # is_blocked = serializers.BooleanField(default=False)
 
     class Meta:
         model = User
@@ -14,13 +13,15 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
+        print(validated_data)
+
         user = User(
             email=validated_data['email'],
             username=validated_data['username'],
             role='user',
             title=validated_data['title'],
             is_blocked=False,
-            # image_s3_path=validated_data['image_s3_path']
+            image_s3_path=validated_data['image_s3_path']
         )
         user.set_password(validated_data['password'])
         user.save()
