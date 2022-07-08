@@ -56,7 +56,6 @@ def check_and_update_refresh_token(refresh_token):
 def block_all_users_pages(user):
     try:
         unblock_date = timezone.make_aware(timezone.datetime.max, timezone.get_default_timezone())
-        print(unblock_date)
         Page.objects.filter(owner=user).update(unblock_date=unblock_date)
     except ObjectDoesNotExist:
         pass
