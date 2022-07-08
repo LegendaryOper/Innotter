@@ -25,7 +25,7 @@ class PageViewSet(viewsets.ModelViewSet):
     """ViewSet for all User objects"""
     queryset = Page.objects.all()
     serializer_class = PageModelUserSerializer
-    permission_classes = []
+    permission_classes = ()
     permissions_dict = {
                         'partial_update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
                                            PageIsntBlocked, PageIsntPrivate),
@@ -103,7 +103,7 @@ class PageViewSet(viewsets.ModelViewSet):
 
 class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = PostModelSerializer
-    permission_classes = []
+    permission_classes = ()
     queryset = Post.objects.all()
     permissions_dict = {
         'partial_update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
@@ -146,7 +146,7 @@ class TagViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destro
 
     queryset = Tag.objects.all()
     serializer_class = TagModelSerializer
-    permission_classes = []
+    permission_classes = ()
     permissions_dict = {
         'destroy': (permissions.IsAuthenticated, IsAdminOrModerator),
         'create': (permissions.IsAuthenticated, IsAdminOrModerator),
@@ -163,31 +163,25 @@ class SearchUserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     queryset = User.objects.all()
-    filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
-    filterset_fields = ['username', 'email']
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
+    filterset_fields = ('username', 'email')
 
 
 class SearchPageViewSet(SearchUserViewSet):
     serializer_class = PageModelUserSerializer
     queryset = Page.objects.all()
-    filterset_fields = ['uuid', 'name', 'tags']
+    filterset_fields = ('uuid', 'name', 'tags')
 
 
-class FeedViewSet(viewsets.ViewSet):
+class FeedViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = PostModelSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = (Post.objects.prefetch_related('page__followers')
-                        .filter(Q(page__followers=self.request.user)
-                                | Q(page__owner=self.request.user)).distinct())
+        queryset = (Post.objects.prefetch_related('page__followers').filter(
+                     Q(page__followers=self.request.user) |
+                     Q(page__owner=self.request.user)).distinct())
         return queryset
-
-    def list(self, request):
-        self.check_permissions(request)
-        queryset = self.get_queryset()
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data)
 
 
 
