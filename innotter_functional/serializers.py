@@ -11,7 +11,13 @@ class PageModelUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Page
-        fields = ('name', 'description', 'image', 'uuid', 'tags', 'is_private', 'owner', 'followers', 'unblock_date')
+        fields = ('id', 'name', 'description', 'image', 'uuid', 'tags',
+                  'is_private', 'owner', 'followers', 'unblock_date')
+        extra_kwargs = {
+            'unblock_date': {'read_only': True},
+            'owner': {'read_only': True},
+            'followers': {'read_only': True},
+        }
 
 
 class PageModelAdminOrModerSerializer(serializers.ModelSerializer):
@@ -21,7 +27,8 @@ class PageModelAdminOrModerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Page
-        fields = '__all__'
+        fields = ('id', 'name', 'description', 'image', 'uuid', 'tags',
+                  'is_private', 'owner', 'followers', 'unblock_date')
 
     def update(self, instance, validated_data):
         if validated_data['unblock_date']:
@@ -48,7 +55,7 @@ class PageModelFollowRequestsSerializer(serializers.ModelSerializer):
 class PostModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
-        fields = ('page', 'content', 'reply_to', 'created_at', 'updated_at', 'likes')
+        fields = ('id', 'page', 'content', 'reply_to', 'created_at', 'updated_at', 'likes')
         extra_kwargs = {
             'likes': {'read_only': True},
         }
@@ -58,4 +65,5 @@ class TagModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ('name',)
+
 

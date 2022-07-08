@@ -1,26 +1,31 @@
 from django.conf import settings
+
+import user.serializers
 from .models import Page, Tag, Post
 from user.models import User
-from rest_framework import parsers, renderers, status, viewsets, mixins, permissions, serializers
+from rest_framework import parsers, renderers, status, viewsets, mixins, permissions, serializers, views
 from .serializers import PageModelUserSerializer, PageModelAdminOrModerSerializer, PageModelFollowRequestsSerializer,\
                          PostModelSerializer, TagModelSerializer
 from rest_framework import permissions
 from .permissions import IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked, \
-                         PageIsntPrivate
+                         PageIsntPrivate, IsPagePostParent
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .services import add_follow_requests_to_request_data, is_user_in_page_follow_requests, \
                       is_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
-                      add_parent_page_id_to_request_data, add_like_to_post
+                      add_parent_page_id_to_request_data, add_like_to_post, get_edited_query_params
 from rest_framework_extensions.mixins import NestedViewSetMixin
 from django.utils import timezone
+from user.serializers import UserSerializer
+from django.db.models import Q
+import django_filters.rest_framework
 
 
 class PageViewSet(viewsets.ModelViewSet):
     """ViewSet for all User objects"""
     queryset = Page.objects.all()
     serializer_class = PageModelUserSerializer
-    permission_classes = []
+    permission_classes = ()
     permissions_dict = {
                         'partial_update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
                                            PageIsntBlocked, PageIsntPrivate),
@@ -40,7 +45,9 @@ class PageViewSet(viewsets.ModelViewSet):
         return super(self.__class__, self).get_permissions()
 
     def list(self, request, *args, **kwargs):
-        self.queryset = Page.objects.filter(is_private=False, unblock_date__lt=timezone.now())
+        self.queryset = Page.objects.filter(Q(unblock_date__lt=timezone.now()) |
+                                            Q(unblock_date__isnull=True),
+                                            is_private=False)
         return super().list(request, *args, **kwargs)
 
     def check_permissions(self, request):
@@ -96,7 +103,7 @@ class PageViewSet(viewsets.ModelViewSet):
 
 class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = PostModelSerializer
-    permission_classes = []
+    permission_classes = ()
     queryset = Post.objects.all()
     permissions_dict = {
         'partial_update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
@@ -106,7 +113,7 @@ class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
         'destroy': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
         'create': (permissions.IsAuthenticated, IsPageOwner),
         'list': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked,),
-        'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
+        'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked, IsPagePostParent),
         'like': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
     }
 
@@ -139,7 +146,7 @@ class TagViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destro
 
     queryset = Tag.objects.all()
     serializer_class = TagModelSerializer
-    permission_classes = []
+    permission_classes = ()
     permissions_dict = {
         'destroy': (permissions.IsAuthenticated, IsAdminOrModerator),
         'create': (permissions.IsAuthenticated, IsAdminOrModerator),
@@ -150,3 +157,35 @@ class TagViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.Destro
     def get_permissions(self):
         self.permission_classes = self.permissions_dict.get(self.action)
         return super().get_permissions()
+
+
+class SearchUserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = User.objects.all()
+    filter_backends = (django_filters.rest_framework.DjangoFilterBackend,)
+    filterset_fields = ('username', 'email')
+
+
+class SearchPageViewSet(SearchUserViewSet):
+    serializer_class = PageModelUserSerializer
+    queryset = Page.objects.all()
+    filterset_fields = ('uuid', 'name', 'tags')
+
+
+class FeedViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
+    serializer_class = PostModelSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = (Post.objects.prefetch_related('page__followers').filter(
+                     Q(page__followers=self.request.user) |
+                     Q(page__owner=self.request.user)).distinct())
+        return queryset
+
+
+
+
+
+
+
