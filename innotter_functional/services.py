@@ -3,8 +3,9 @@ from django.db.models import F, Manager
 from django.http import QueryDict
 from .models import Page
 from user.services import get_file_extension
-from .aws_s3_conn import upload_file_to_s3
-
+from .AWS_clients import S3Client
+from django.conf import settings
+from .tasks import celery_send_mail_about_post
 
 
 def is_page_block(unblock_date):
@@ -62,12 +63,11 @@ def get_edited_query_params(query_params):
 
 
 def prepare_mail_data(post_data):
-    followers_list = [element['email'] for element in list(Page.objects.prefetch_related('followers')
-                                                           .get(pk=post_data.get('page')).followers.values('email'))]
-    page_name = Page.objects.get(pk=post_data.get('page')).name
+    page = Page.objects.prefetch_related('followers').get(pk=post_data.get('page'))
+    followers_list = page.followers.values_list('email', flat=True)
+    page_name = page.name
     post_url = f'/innotter/pages/{post_data.get("page")}/posts/{post_data.get("id")}'
-    mail_data = (followers_list, page_name, post_url)
-    return mail_data
+    return followers_list, page_name, post_url
 
 
 def add_page_image_to_request_data(url, request_data):
@@ -83,10 +83,12 @@ def handle_page_image(image, request):
     if image:
         extension = get_file_extension(image.name)
         file_key = request.data.get('name') + extension
-        upload_file_to_s3(image, file_key)
+        S3Client.upload_file(image, file_key)
         add_page_image_to_request_data(file_key, request.data)
         return
     add_page_image_to_request_data('', request.data)
-    
 
 
+def new_post_mailing_list(serializer_data):
+    mail_data = prepare_mail_data(serializer_data)
+    celery_send_mail_about_post.delay(*mail_data)

@@ -1,24 +1,22 @@
-from django.conf import settings
-import user.serializers
+
 from .models import Page, Tag, Post
 from user.models import User
 from rest_framework import parsers, renderers, status, viewsets, mixins, permissions, serializers, views
-from .serializers import PageModelUserSerializer, PageModelAdminOrModerSerializer, PageModelFollowRequestsSerializer,\
-                         PostModelSerializer, TagModelSerializer
+from .serializers import (PageModelUserSerializer, PageModelAdminOrModerSerializer, PageModelFollowRequestsSerializer,
+                          PostModelSerializer, TagModelSerializer)
 from rest_framework import permissions
-from .permissions import IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked, \
-                         PageIsntPrivate, IsPagePostParent
+from .permissions import (IsPageOwner, IsAdminOrModerator, IsPageOwnerOrModeratorOrAdmin, PageIsntBlocked,
+                          PageIsntPrivate, IsPagePostParent)
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .services import add_follow_requests_to_request_data, is_user_in_page_follow_requests, \
-                      is_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,\
-                      add_parent_page_id_to_request_data, add_like_to_post, get_edited_query_params, prepare_mail_data
+from .services import (add_follow_requests_to_request_data, is_user_in_page_follow_requests,
+                       is_user_in_page_followers, add_user_to_page_follow_requests, add_user_to_page_followers,
+                       add_parent_page_id_to_request_data, add_like_to_post, new_post_mailing_list)
 from rest_framework_extensions.mixins import NestedViewSetMixin
 from django.utils import timezone
 from user.serializers import UserSerializer
 from django.db.models import Q
 import django_filters.rest_framework
-from .tasks import celery_send_mail_about_post
 from .services import handle_page_image
 
 
@@ -28,17 +26,17 @@ class PageViewSet(viewsets.ModelViewSet):
     serializer_class = PageModelUserSerializer
     permission_classes = ()
     permissions_dict = {
-                        'partial_update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
-                                           PageIsntBlocked, PageIsntPrivate),
-                        'update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
-                                   PageIsntBlocked, PageIsntPrivate),
-                        'destroy': (permissions.IsAuthenticated, IsPageOwner),
-                        'create': (permissions.IsAuthenticated,),
-                        'list': (permissions.IsAuthenticated,),
-                        'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
-                        'follow_requests': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
-                        'follow': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked,)
-                        }
+        'partial_update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
+                           PageIsntBlocked, PageIsntPrivate),
+        'update': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin,
+                   PageIsntBlocked, PageIsntPrivate),
+        'destroy': (permissions.IsAuthenticated, IsPageOwner),
+        'create': (permissions.IsAuthenticated,),
+        'list': (permissions.IsAuthenticated,),
+        'retrieve': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked),
+        'follow_requests': (permissions.IsAuthenticated, IsPageOwnerOrModeratorOrAdmin),
+        'follow': (permissions.IsAuthenticated, PageIsntPrivate, PageIsntBlocked,)
+    }
 
     # a method that set permissions depending on http request methods
     def get_permissions(self):
@@ -89,7 +87,7 @@ class PageViewSet(viewsets.ModelViewSet):
             if request.method == "GET":
                 serializer = PageModelFollowRequestsSerializer(page)
                 return Response({'follow_requests': serializer.data['follow_requests'],
-                                 'followers': serializer.data['followers']},  status.HTTP_200_OK)
+                                 'followers': serializer.data['followers']}, status.HTTP_200_OK)
             elif request.method == 'POST':
                 add_follow_requests_to_request_data(request.data, page.follow_requests)
                 serializer = PageModelFollowRequestsSerializer(data=request.data)
@@ -105,13 +103,13 @@ class PageViewSet(viewsets.ModelViewSet):
         self.check_permissions(request)
         self.check_object_permissions(request, self.get_object())
         if (is_user_in_page_follow_requests(request.user, page)
-            or is_user_in_page_followers(request.user, page)):
+                or is_user_in_page_followers(request.user, page)):
             return Response({"message": "You are already sent follow request"}, status.HTTP_400_BAD_REQUEST)
         if page.is_private:
             add_user_to_page_follow_requests(request.user, page)
         else:
             add_user_to_page_followers(request.user, page)
-        return Response({'message': 'Ok'},  status.HTTP_200_OK)
+        return Response({'message': 'Ok'}, status.HTTP_200_OK)
 
 
 class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
@@ -136,10 +134,7 @@ class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        print(serializer.data)
-        mail_data = prepare_mail_data(serializer.data)
-        celery_send_mail_about_post.delay(*mail_data)
-
+        new_post_mailing_list(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_permissions(self):
@@ -164,7 +159,6 @@ class PostViewSet(NestedViewSetMixin, viewsets.ModelViewSet):
 
 class TagViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.DestroyModelMixin, mixins.RetrieveModelMixin,
                  mixins.ListModelMixin):
-
     queryset = Tag.objects.all()
     serializer_class = TagModelSerializer
     permission_classes = ()
@@ -196,17 +190,10 @@ class SearchPageViewSet(SearchUserViewSet):
 
 class FeedViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = PostModelSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_queryset(self):
         queryset = (Post.objects.prefetch_related('page__followers').filter(
-                     Q(page__followers=self.request.user) |
-                     Q(page__owner=self.request.user)).distinct())
+            Q(page__followers=self.request.user) |
+            Q(page__owner=self.request.user)).distinct())
         return queryset
-
-
-
-
-
-
-
