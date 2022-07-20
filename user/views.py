@@ -1,17 +1,14 @@
-
 from django.conf import settings
 from rest_framework import parsers, renderers, status, viewsets, mixins, permissions
 from rest_framework.response import Response
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.decorators import action
-from .services import generate_access_token, generate_refresh_token, set_refresh_token, check_and_update_refresh_token
+from .services import generate_access_token, generate_refresh_token, set_refresh_token, check_and_update_refresh_token,\
+                      handle_image
 from .serializers import UserSerializer
 from django.contrib.auth import get_user_model
 from .permissions import IsUserOwner, IsAdmin, IsModerator, IsUserOwnerOrAdmin
 from rest_framework import permissions
-
-
-
 
 User = get_user_model()
 
@@ -97,15 +94,18 @@ class UserViewSet(viewsets.ModelViewSet):
         self.permission_classes = self.permissions_dict.get(self.action)
         return super(self.__class__, self).get_permissions()
 
+    def create(self, request, *args, **kwargs):
+        image = request.FILES.get('image')
+        handle_image(image, request)
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response({'message': 'data is not valid'}, status=status.HTTP_400_BAD_REQUEST,)
 
-
-
-
-
-
-
-
-
-
-
+    def update(self, request, *args, **kwargs):
+        image = request.FILES.get('image')
+        handle_image(image, request)
+        return super().update(request, *args, **kwargs)
 

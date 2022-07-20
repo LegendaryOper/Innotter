@@ -199,3 +199,24 @@ CUSTOM_JWT = {
   'AUTH_COOKIE_PATH': '/',        # The path of the auth cookie.
   'AUTH_COOKIE_SAMESITE': 'Lax',  # Whether to set the flag restricting cookie leaks on cross-site requests. This can be 'Lax', 'Strict', or None to disable the flag.
 }
+
+RABBITMQ = {
+    "PROTOCOL": "amqp",
+    "HOST": config("RABBITMQ_HOST"),
+    "PORT": config("RABBITMQ_PORT", cast=int),
+    "USER": config("RABBITMQ_USER"),
+    "PASSWORD": config("RABBITMQ_PASSWORD"),
+}
+
+CELERY_BROKER_URL = f"{RABBITMQ['PROTOCOL']}://{RABBITMQ['USER']}:{RABBITMQ['PASSWORD']}@localhost:{RABBITMQ['PORT']}"
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
+AWS_QUERYSTRING_AUTH = config('AWS_QUERYSTRING_AUTH', cast=bool)
+AWS_REGION_NAME = config('AWS_REGION_NAME')
+AWS_MAIL_SENDER = config('AWS_MAIL_SENDER')

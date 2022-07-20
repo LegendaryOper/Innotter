@@ -2,33 +2,43 @@ import datetime
 from rest_framework import serializers
 from .models import Page, Post, Tag
 from user.models import User
+from .AWS_clients import S3Client
+from botocore.exceptions import ParamValidationError
 
 
-class PageModelUserSerializer(serializers.ModelSerializer):
-    """ A page model serializer, works with default user(owner)"""
-    owner = serializers.HiddenField(default=serializers.CurrentUserDefault(),)
-    unblock_date = serializers.DateTimeField(default=None)
-
-    class Meta:
-        model = Page
-        fields = ('id', 'name', 'description', 'image', 'uuid', 'tags',
-                  'is_private', 'owner', 'followers', 'unblock_date')
-        extra_kwargs = {
-            'unblock_date': {'read_only': True},
-            'owner': {'read_only': True},
-            'followers': {'read_only': True},
-        }
-
-
-class PageModelAdminOrModerSerializer(serializers.ModelSerializer):
-    """ A page model serializer, works with default user(owner)"""
+class BaseModelUserSerializer(serializers.ModelSerializer):
     owner = serializers.HiddenField(default=serializers.CurrentUserDefault(), )
     unblock_date = serializers.DateTimeField(default=None)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Page
         fields = ('id', 'name', 'description', 'image', 'uuid', 'tags',
-                  'is_private', 'owner', 'followers', 'unblock_date')
+                  'is_private', 'owner', 'followers', 'unblock_date', 'image_url')
+
+    def get_image_url(self, obj):
+        try:
+            url = S3Client.create_presigned_url(object_name=obj.image)
+        except ParamValidationError:
+            url = ''
+        return url
+
+
+class PageModelUserSerializer(BaseModelUserSerializer):
+    """ A page model serializer, works with default user(owner)"""
+    class Meta:
+        model = Page
+        fields = ('id', 'name', 'description', 'image', 'uuid', 'tags',
+                  'is_private', 'owner', 'followers', 'unblock_date', 'image_url')
+        extra_kwargs = {
+                'unblock_date': {'read_only': True},
+                'owner': {'read_only': True},
+                'followers': {'read_only': True},
+            }
+
+
+class PageModelAdminOrModerSerializer(BaseModelUserSerializer):
+    """ A page model serializer, works with default user(owner)"""
 
     def update(self, instance, validated_data):
         if validated_data['unblock_date']:
